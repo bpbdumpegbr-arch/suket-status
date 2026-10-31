@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIP-Surat Status — Kelurahan Karang Ambun</title>
+<meta name="description" content="Layanan surat keterangan status Kelurahan Karang Ambun, Kec. Tanjung Redeb, Kab. Berau">
+<link rel="icon" href="data:,">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="busy"></div>
+<div id="loadingOverlay" class="loading-overlay"><div class="spinner-border" role="status"><span class="visually-hidden">Memuat…</span></div></div>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginView" class="login-wrap">
+  <div class="login-bg"></div><div class="login-tint"></div>
+  <form class="card-x login-card" onsubmit="doLoginUi(event)">
+    <div class="mb-3"><small class="sm">Pemerintah Kabupaten Berau, Kec. Tanjung Redeb</small><h1>Kelurahan Karang Ambun</h1><p class="sm mb-0">Masuk untuk membuat dan memantau surat keterangan status.</p></div>
+    <div class="mb-3"><label class="form-label" for="lgU">Username</label><input id="lgU" class="form-control" autocomplete="username" required></div>
+    <div class="mb-3"><label class="form-label" for="lgP">Kata sandi</label><input id="lgP" type="password" class="form-control" autocomplete="current-password" required></div>
+    <button class="btn btn-primary w-100" type="submit">Masuk</button>
+  </form>
+</div>
+
+<!-- ═══ APLIKASI ═══ -->
+<div id="appView" hidden>
+  <nav id="sidebar" class="sidebar" aria-label="Menu utama">
+    <div class="brand"><img id="brandLogo" alt="" hidden><div><b>SIP-Surat Status</b><small>Kec. Tanjung Redeb</small></div></div>
+    <ul id="nav" class="nav-list"></ul>
+    <div class="side-foot">
+      <button class="btn btn-outline-secondary btn-sm" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> Mode gelap</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="logout()"><i class="bi bi-box-arrow-left"></i> Keluar</button>
+    </div>
+  </nav>
+  <div id="scrim" class="scrim" onclick="closeSide()"></div>
+  <div class="shell">
+    <header class="topbar">
+      <button id="burger" class="btn btn-outline-secondary btn-sm" onclick="openSide()" aria-label="Buka menu"><i class="bi bi-list"></i></button>
+      <div class="grow" id="pageTitle"></div>
+      <div class="chip"><b id="uName"></b><small id="uRole"></small></div>
+    </header>
+
+    <main id="app-container">
+      <!-- Beranda -->
+      <section id="page-dashboard" class="page">
+        <div class="hero"><div><h1 style="color:#fff">Selamat datang, <span id="hiName"></span></h1><p>Kelurahan Karang Ambun, Kec. Tanjung Redeb, Kab. Berau</p></div>
+          <button class="btn btn-light" data-roles="Admin,Petugas" onclick="navigateTo('buat')"><i class="bi bi-plus-lg"></i> Buat surat baru</button></div>
+        <div class="row g-3" id="kpi"></div>
+        <div class="row g-3 mt-0">
+          <div class="col-lg-8"><div class="card-x"><h6>Surat terbaru</h6><div id="recent" class="table-responsive"></div></div></div>
+          <div class="col-lg-4"><div class="card-x"><h6><i class="bi bi-stars"></i> Analisis otomatis</h6><ul id="insights" class="ps-3 mb-0"></ul></div></div>
+        </div>
+      </section>
+
+      <!-- Buat / ubah surat -->
+      <section id="page-buat" class="page">
+        <div class="page-head"><div><h1 id="buatTitle">Buat surat keterangan</h1><p>Nomor surat dibuat otomatis saat surat disimpan.</p></div>
+          <div class="seg" id="jenisSeg"><button type="button" data-j="Belum Menikah" onclick="setJenis('Belum Menikah')">Belum Menikah</button><button type="button" data-j="Janda/Duda" onclick="setJenis('Janda/Duda')">Janda / Duda</button></div></div>
+        <form id="suratForm" class="card-x" novalidate onsubmit="submitSurat(event)">
+          <input type="hidden" name="ID"><input type="hidden" name="Jenis">
+          <h6 class="sec">Data pemohon</h6>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">NIK <span class="req">*</span></label><input class="form-control mono" name="NIK" maxlength="16" inputmode="numeric" pattern="\d{16}" required oninput="this.value=this.value.replace(/\D/g,'');$('nikCnt').textContent=this.value.length"><div class="hint"><span id="nikCnt">0</span>/16 digit sesuai e-KTP</div></div>
+            <div class="col-md-6"><label class="form-label">Nama lengkap (sesuai KTP) <span class="req">*</span></label><input class="form-control" name="Nama" required></div>
+            <div class="col-md-4"><label class="form-label">Jenis kelamin <span class="req">*</span></label><select class="form-select" name="JK" required><option>Laki-laki</option><option>Perempuan</option></select></div>
+            <div class="col-md-8"><label class="form-label">Tempat dan tanggal lahir <span class="req">*</span></label><input class="form-control" name="TTL" placeholder="Contoh: Tanjung Redeb, 14 Agustus 1998" required></div>
+            <div class="col-md-4"><label class="form-label">Warga negara <span class="req">*</span></label><input class="form-control" name="WN" required></div>
+            <div class="col-md-4"><label class="form-label">Agama <span class="req">*</span></label><select class="form-select" name="Agama" required><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option><option>Konghucu</option></select></div>
+            <div class="col-md-4"><label class="form-label">Pekerjaan <span class="req">*</span></label><input class="form-control" name="Pekerjaan" required></div>
+            <div class="col-12"><label class="form-label">Alamat lengkap <span class="req">*</span></label><textarea class="form-control" name="Alamat" rows="2" required></textarea></div>
+          </div>
+          <h6 class="sec">Status dan keperluan</h6>
+          <div class="row g-3">
+            <div class="col-md-6" id="statusBox"><label class="form-label">Status perkawinan</label><input class="form-control" value="Belum Kawin" readonly></div>
+            <div class="col-md-6" id="ceraiBox" hidden><label class="form-label">Status perkawinan <span class="req">*</span></label>
+              <div class="d-flex gap-4 pt-2"><label><input type="radio" name="JenisCerai" value="Cerai Mati"> Cerai mati</label><label><input type="radio" name="JenisCerai" value="Cerai Hidup"> Cerai hidup</label></div></div>
+            <div class="col-md-6"><label class="form-label">Keperluan <span class="req">*</span></label><textarea class="form-control" name="Keperluan" rows="2" placeholder="Contoh: Persyaratan pengajuan pinjaman KUR" required></textarea></div>
+          </div>
+          <h6 class="sec">Penandatangan dan tanggal</h6>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Pejabat penandatangan <span class="req">*</span></label><select class="form-select" id="fPejabat" name="IDPejabat" required></select></div>
+            <div class="col-md-6"><label class="form-label">Tanggal surat <span class="req">*</span></label><input type="date" class="form-control" name="Tanggal" required></div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 mt-4"><button type="button" class="btn btn-outline-secondary" onclick="navigateTo('daftar')">Batal</button><button type="submit" class="btn btn-primary"><i class="bi bi-eye"></i> Simpan dan lihat pratinjau</button></div>
+        </form>
+      </section>
+
+      <!-- Daftar surat -->
+      <section id="page-daftar" class="page">
+        <div class="page-head"><div><h1>Daftar dan riwayat surat</h1><p>Cari, saring, ubah, dan cetak ulang surat yang pernah dibuat.</p></div></div>
+        <div class="card-x mb-3"><div class="row g-2">
+          <div class="col-lg-4"><input id="fQ" class="form-control" placeholder="Cari nomor surat, nama, atau NIK" oninput="filterDaftar()"></div>
+          <div class="col-6 col-lg-2"><select id="fJ" class="form-select" onchange="filterDaftar()"><option value="">Semua jenis</option><option>Belum Menikah</option><option>Janda/Duda</option></select></div>
+          <div class="col-6 col-lg-2"><input id="fA" type="date" class="form-control" title="Dari tanggal" onchange="filterDaftar()"></div>
+          <div class="col-6 col-lg-2"><input id="fB" type="date" class="form-control" title="Sampai tanggal" onchange="filterDaftar()"></div>
+          <div class="col-6 col-lg-2"><select id="fPj" class="form-select" onchange="filterDaftar()"></select></div>
+        </div><button class="btn btn-link btn-sm px-0 mt-2" onclick="resetFilter()">Atur ulang filter</button></div>
+        <div class="card-x"><div id="listBox" class="table-responsive"></div><div id="pager" class="pager"></div></div>
+      </section>
+
+      <!-- Laporan -->
+      <section id="page-laporan" class="page">
+        <div class="page-head"><div><h1>Laporan dan statistik</h1><p>Jumlah surat per bulan, dibedakan per jenis surat.</p></div><select id="lapYear" class="form-select w-auto" onchange="loadLaporan()"></select></div>
+        <div class="row g-3">
+          <div class="col-lg-8"><div class="card-x"><h6>Surat terbit per bulan <span class="sm">(total <b id="lapTotal">0</b>)</span></h6><canvas id="lapChart" height="130"></canvas></div></div>
+          <div class="col-lg-4"><div class="card-x mb-3"><h6>Per penandatangan</h6><div id="lapPj"></div></div><div class="card-x"><h6>Keperluan terbanyak</h6><div id="lapKp"></div></div></div>
+        </div>
+      </section>
+
+      <!-- Pengguna & Pejabat -->
+      <section id="page-pengguna" class="page">
+        <div class="page-head"><div><h1>Pengguna dan hak akses</h1><p>Admin mengelola akun dan peran. Akun nonaktif tidak bisa masuk.</p></div><button class="btn btn-primary" onclick="openMaster('pengguna')"><i class="bi bi-plus-lg"></i> Tambah pengguna</button></div>
+        <div class="card-x table-responsive" id="tbl-pengguna"></div>
+      </section>
+      <section id="page-pejabat" class="page">
+        <div class="page-head"><div><h1>Pejabat penandatangan</h1><p>Pejabat nonaktif tidak muncul di pilihan saat membuat surat.</p></div><button class="btn btn-primary" onclick="openMaster('pejabat')"><i class="bi bi-plus-lg"></i> Tambah pejabat</button></div>
+        <div class="card-x table-responsive" id="tbl-pejabat"></div>
+      </section>
+
+      <!-- Pengaturan -->
+      <section id="page-pengaturan" class="page">
+        <div class="page-head"><div><h1>Template, kop, dan nomor surat</h1><p>Perubahan template tidak mengubah surat yang sudah dibuat.</p></div><button class="btn btn-primary" onclick="saveCfg(this)"><i class="bi bi-save"></i> Simpan perubahan</button></div>
+        <div class="row g-3">
+          <div class="col-lg-6"><div class="card-x"><h6>Kop surat</h6>
+            <div class="mb-3 d-flex gap-3 align-items-center"><img id="logoPrev" alt="Logo" style="height:64px" hidden><label class="btn btn-outline-secondary btn-sm mb-0">Ganti logo<input type="file" accept="image/png,image/jpeg" hidden onchange="uploadLogo(this)"></label></div>
+            <div class="mb-2"><label class="form-label">Pemerintah daerah</label><input id="c_pemda" class="form-control"></div>
+            <div class="mb-2"><label class="form-label">Kecamatan</label><input id="c_kecamatan" class="form-control"></div>
+            <div class="mb-2"><label class="form-label">Kelurahan</label><input id="c_kelurahan" class="form-control"></div>
+            <div class="mb-2"><label class="form-label">Alamat dan kode pos</label><textarea id="c_alamat" class="form-control" rows="2"></textarea></div>
+            <div><label class="form-label">Kota penandatanganan</label><input id="c_kota" class="form-control"></div></div></div>
+          <div class="col-lg-6"><div class="card-x mb-3"><h6>Penomoran otomatis</h6><p class="sm">Gunakan {NO}, {BLN} (romawi), dan {THN}. Nomor urut terpisah per jenis surat dan kembali ke 001 tiap tahun.</p><div id="nomorBox"></div></div>
+            <div class="card-x"><h6>Isi template surat</h6><p class="sm">Token: {GELAR}, {CERAI}, {NAMA}, {STATUS}.</p>
+              <label class="form-label">Belum Menikah</label><textarea id="c_tplBelum" class="form-control mb-2" rows="4"></textarea>
+              <label class="form-label">Janda/Duda</label><textarea id="c_tplJanda" class="form-control" rows="4"></textarea></div></div>
+          <div class="col-12"><div class="card-x"><h6>Latar halaman masuk</h6>
+            <div class="row g-4">
+              <div class="col-lg-5"><div id="loginPrev" class="login-prev"><div class="login-bg"></div><div class="login-tint"></div></div>
+                <div class="d-flex gap-2 mt-2"><label class="btn btn-outline-secondary btn-sm mb-0">Pilih gambar<input type="file" accept="image/png,image/jpeg" hidden onchange="uploadBg(this)"></label><button type="button" class="btn btn-outline-secondary btn-sm" onclick="removeBg()">Hapus gambar</button></div>
+                <div class="hint">Pakai gambar lanskap minimal 1600 px, maksimal 2 MB (PNG/JPG).</div></div>
+              <div class="col-lg-7"><div class="row g-3">
+                <div class="col-6"><label class="form-label" for="c_gradA">Warna gradasi awal</label><input type="color" id="c_gradA" class="form-control form-control-color w-100" oninput="prevLogo()"></div>
+                <div class="col-6"><label class="form-label" for="c_gradB">Warna gradasi akhir</label><input type="color" id="c_gradB" class="form-control form-control-color w-100" oninput="prevLogo()"></div>
+                <div class="col-6"><label class="form-label" for="c_gradAngle">Arah gradasi: <span id="angVal"></span>°</label><input type="range" id="c_gradAngle" class="form-range" min="0" max="360" oninput="prevLogo()"></div>
+                <div class="col-6"><label class="form-label" for="c_gradOpacity">Intensitas gradasi: <span id="opVal"></span>%</label><input type="range" id="c_gradOpacity" class="form-range" min="0" max="100" oninput="prevLogo()"></div>
+              </div><div class="hint">Intensitas 0% menampilkan gambar apa adanya, 100% menutupinya dengan gradasi. Tanpa gambar, latar selalu berupa gradasi penuh. Klik Simpan perubahan agar tampil di halaman masuk.</div></div>
+            </div></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Modal: form master (pengguna/pejabat) -->
+<div class="modal fade" id="mdModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" onsubmit="saveMaster(event)" novalidate>
+  <div class="modal-header"><h5 class="modal-title" id="mdTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+  <div class="modal-body" id="mdBody"></div>
+  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan</button></div>
+</form></div></div>
+
+<!-- Modal: konfirmasi hapus -->
+<div class="modal fade" id="delModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">Hapus surat?</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+  <div class="modal-body" id="delBody"></div>
+  <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-danger" id="delOk">Hapus surat</button></div>
+</div></div></div>
+
+<!-- Modal: pratinjau A4 (tanpa tab baru) -->
+<div class="modal fade" id="pvModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-xl"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">Pratinjau <span id="pvTitle" class="mono"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+  <div class="modal-body p-0"><div class="sheet-wrap"><div class="sheet" id="sheetBox"></div></div></div>
+  <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+    <a id="pdfLink" class="btn btn-outline-secondary" target="_blank" rel="noopener" hidden><i class="bi bi-download"></i> Unduh PDF</a>
+    <button class="btn btn-outline-secondary" onclick="savePdf(this)"><i class="bi bi-cloud-arrow-up"></i> Simpan PDF ke Drive</button>
+    <button class="btn btn-primary" onclick="printSheet()"><i class="bi bi-printer"></i> Cetak</button></div>
+</div></div></div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:3100"><div id="appToast" class="toast" role="alert"><div class="toast-header"><strong class="me-auto" id="toastTitle"></strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Tutup"></button></div><div class="toast-body" id="toastBody"></div></div></div>
+<div id="printRoot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
